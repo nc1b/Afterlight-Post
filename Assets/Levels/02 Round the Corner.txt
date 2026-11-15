@@ -1,12 +1,14 @@
-name: Round the Corner
-shots: 3
-tip: MIRRORS TURN THE LIGHT.
-tip: IT ALWAYS COMES HOME THE WAY IT WENT.
+name: Sorting Room
+shots: 4
+tip: BANK AROUND TWO CORNERS TO REACH THE BELL.
+tip: THE LAMP LIGHTS ON THE WAY BACK.
 map:
-#############
-#.......O...#
-#.......a...#
-#...........#
-#...b.../...#
-#.P.........#
-#############
+##w####w###w###
+#...###########
+#...,/:::a::O:#
+#...::::,,,,::#
+#...,::::,:::,#
+#...:::O:m:\###
+#...:/::,::^:,#
+#.P..........?#
+###############

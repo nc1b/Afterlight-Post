@@ -18,6 +18,14 @@ public class BoardView : MonoBehaviour
     [Header("Variants")]
     public Sprite[] floorSprites;
     public Sprite[] wallSprites;
+    public Sprite counterSprite;
+    public Sprite parcelsSprite;
+    public Sprite windowDark;
+    public Sprite windowLit;
+    public Sprite slipSprite;
+    public Sprite scratchSprite;
+    public Sprite mailboxDark;
+    public Sprite mailboxOpen;
 
     [Header("Scene")]
     public Transform tiles;
@@ -40,11 +48,14 @@ public class BoardView : MonoBehaviour
 
     Board board;
     Vector3 origin;
+    SpriteRenderer mailbox;
     readonly Dictionary<Vector2Int, MirrorView> mirrors = new Dictionary<Vector2Int, MirrorView>();
     readonly Dictionary<Vector2Int, LampView> lamps = new Dictionary<Vector2Int, LampView>();
     readonly Dictionary<Vector2Int, GateView> gates = new Dictionary<Vector2Int, GateView>();
     readonly Dictionary<Vector2Int, BellView> bells = new Dictionary<Vector2Int, BellView>();
     readonly List<SpriteRenderer> segments = new List<SpriteRenderer>();
+    readonly List<SpriteRenderer> surfaces = new List<SpriteRenderer>();
+    readonly List<SpriteRenderer> windows = new List<SpriteRenderer>();
 
     int flippedThisShot;
     int lampsThisShot;
@@ -63,6 +74,9 @@ public class BoardView : MonoBehaviour
         lamps.Clear();
         gates.Clear();
         bells.Clear();
+        surfaces.Clear();
+        windows.Clear();
+        mailbox = null;
         ClearBeam();
         pulse.gameObject.SetActive(false);
 
@@ -75,12 +89,16 @@ public class BoardView : MonoBehaviour
             {
                 var cell = new Vector2Int(x, y);
                 Tile tile = b.TileAt(cell);
+                char mark = b.At(cell);
                 Vector3 pos = World(cell);
 
                 if (tile == Tile.Wall)
                 {
                     var wall = Instantiate(wallPrefab, pos, Quaternion.identity, tiles);
-                    wall.GetComponent<SpriteRenderer>().sprite = wallSprites[(x * 7 + y * 3) % wallSprites.Length];
+                    var renderer = wall.GetComponent<SpriteRenderer>();
+                    renderer.sprite = wallSprites[(x * 7 + y * 3) % wallSprites.Length];
+                    surfaces.Add(renderer);
+                    if (mark == 'w') windows.Add(AddProp("Office window", windowDark, pos));
                     continue;
                 }
 
@@ -91,7 +109,12 @@ public class BoardView : MonoBehaviour
                 else
                 {
                     var floor = Instantiate(floorPrefab, pos, Quaternion.identity, tiles);
-                    floor.GetComponent<SpriteRenderer>().sprite = floorSprites[(x + y * 2) % floorSprites.Length];
+                    var floorRenderer = floor.GetComponent<SpriteRenderer>();
+                    if (tile == Tile.Counter)
+                        floorRenderer.sprite = mark == ',' ? parcelsSprite : counterSprite;
+                    else
+                        floorRenderer.sprite = floorSprites[(x + y * 2) % floorSprites.Length];
+                    surfaces.Add(floorRenderer);
                 }
 
                 switch (tile)
@@ -115,10 +138,27 @@ public class BoardView : MonoBehaviour
                         gate.SetColour(lampColours[b.ColourAt(cell)]);
                         gates[cell] = gate;
                         break;
+                    case Tile.Mailbox:
+                        mailbox = AddProp("Returns mailbox", mailboxDark, pos);
+                        break;
                 }
+
+                if (mark == '?') AddProp("Torn delivery slip", slipSprite, pos);
+                else if (mark == '^') AddProp("Scratched arrow", scratchSprite, pos);
             }
         }
         Refresh();
+    }
+
+    SpriteRenderer AddProp(string label, Sprite sprite, Vector3 position)
+    {
+        var prop = new GameObject(label);
+        prop.transform.SetParent(tiles);
+        prop.transform.position = position;
+        var renderer = prop.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingOrder = 2;
+        return renderer;
     }
 
     bool StandsInWater(Vector2Int cell, Tile tile)
@@ -140,9 +180,24 @@ public class BoardView : MonoBehaviour
         StopAllCoroutines();
         ClearBeam();
         pulse.gameObject.SetActive(false);
+        sparks.Clear();
+        if (mailbox != null) mailbox.sprite = board.state.letterFound ? mailboxOpen : mailboxDark;
         foreach (var pair in mirrors) pair.Value.Set(board.IsSlash(pair.Key));
         foreach (var pair in lamps) pair.Value.SetLit(board.IsLit(board.ColourAt(pair.Key)), false);
         foreach (var pair in gates) pair.Value.SetOpen(board.IsLit(board.ColourAt(pair.Key)), false);
+        RefreshRoomLight();
+    }
+
+    void RefreshRoomLight()
+    {
+        int lit = 0;
+        foreach (var cell in lamps.Keys)
+            if (board.IsLit(board.ColourAt(cell))) lit++;
+
+        float brightness = lamps.Count > 0 ? (float)lit / lamps.Count : 0;
+        Color tint = Color.Lerp(new Color(0.76f, 0.79f, 0.94f), new Color(1f, 0.96f, 0.76f), brightness);
+        foreach (var surface in surfaces) surface.color = tint;
+        foreach (var window in windows) window.sprite = board.Solved ? windowLit : windowDark;
     }
 
     public IEnumerator PlayShot(Shot shot)
@@ -220,12 +275,22 @@ public class BoardView : MonoBehaviour
             Burst(World(cell), new Color(1f, 0.72f, 0.29f), 5);
         }
 
-        if (!charged || board.TileAt(cell) != Tile.Lamp) return;
+        if (!charged) return;
+        Tile tile = board.TileAt(cell);
+        if (tile == Tile.Mailbox && !board.state.letterFound)
+        {
+            board.state.letterFound = true;
+            mailbox.sprite = mailboxOpen;
+            Sfx.Play(Sfx.I.lamp, 1.45f);
+            Burst(World(cell), chargedColour, 18);
+        }
+        if (tile != Tile.Lamp) return;
         int colour = board.ColourAt(cell);
         if (board.IsLit(colour)) return;
 
         board.state.lit |= 1 << colour;
         lamps[cell].SetLit(true, true);
+        RefreshRoomLight();
         Sfx.Play(Sfx.I.lamp, 1f + 0.12f * lampsThisShot);
         lampsThisShot++;
         Burst(World(cell), lampColours[colour], 12);

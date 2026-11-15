@@ -24,6 +24,8 @@ public class LampView : MonoBehaviour
 
     public void SetLit(bool on, bool animate)
     {
+        StopAllCoroutines();
+        transform.localScale = Vector3.one;
         lit = on;
         Apply();
         if (on && animate) StartCoroutine(Pop());
@@ -31,7 +33,7 @@ public class LampView : MonoBehaviour
 
     void Apply()
     {
-        glass.color = lit ? Color.Lerp(colour, Color.white, 0.35f) : Color.Lerp(colour, unlitTint, 0.55f);
+        glass.color = lit ? Color.Lerp(colour, Color.white, 0.25f) : Color.Lerp(colour, unlitTint, 0.68f);
         glow.enabled = lit;
         glow.color = new Color(colour.r, colour.g, colour.b, 0.55f);
     }

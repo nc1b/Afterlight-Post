@@ -1,13 +1,14 @@
-name: Home Signal
-shots: 6
-tip: LAST STREET ON THE ROUND.  BRING THEM ALL HOME.
+name: Dispatch
+shots: 4
+tip: THE BRASS LAMP OPENS THE SHUTTER.
+tip: LIGHT BOTH LAMPS TO OPEN THE POST OFFICE.
 map:
-###############
-#~~O~~~~~O~~~~#
-#~~c~~/~~b~d~O#
-#~~~~~~~~~~~~~#
-#~~<~~A~~>aO~~#
-#~~~~~\~~~~~~<#
-#~~~~~~~~~~~~~#
-#P.........C..#
+###w###w###w###
+#....#::,,:::O#
+#....O::,,::,:#
+#....::/:::::b#
+#....a#,::::,:#
+#....::::,:/:/#
+#..../#::\::,:#
+#.P...A.......#
 ###############

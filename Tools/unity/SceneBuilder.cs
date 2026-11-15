@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -203,17 +202,6 @@ public static class SceneBuilder
         return rt;
     }
 
-    static RectTransform Centred(GameObject go, float cx, float cy, float w, float h)
-    {
-        var rt = go.GetComponent<RectTransform>();
-        if (rt == null) rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(cx, -cy);
-        rt.sizeDelta = new Vector2(w, h);
-        return rt;
-    }
-
     static GameObject Panel(GameObject parent, string name)
     {
         var go = Child(parent, name);
@@ -258,13 +246,10 @@ public static class SceneBuilder
         camGo.transform.position = new Vector3(0, 0, -10);
         var cam = camGo.GetComponent<Camera>();
         cam.orthographic = true;
-        cam.orthographicSize = 5.625f;
+        cam.orthographicSize = 6f;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color32(0x0b, 0x14, 0x22, 255);
+        cam.backgroundColor = new Color32(0x19, 0x1c, 0x30, 255);
         var shake = camGo.AddComponent<CameraShake>();
-
-        var sea = new GameObject("Sea");
-        AddSprite(sea, Bg + "sea.png", -10);
 
         var boardGo = new GameObject("Board");
         var view = boardGo.AddComponent<BoardView>();
@@ -272,9 +257,20 @@ public static class SceneBuilder
         view.mirrorPrefab = mirrorP; view.hingePrefab = hingeP; view.lampPrefab = lampP; view.gatePrefab = gateP; view.beamPrefab = beamP;
         view.floorSprites = new[] { Spr(Tiles + "floor_a.png"), Spr(Tiles + "floor_b.png") };
         view.wallSprites = new[] { Spr(Tiles + "wall_a.png"), Spr(Tiles + "wall_b.png") };
+        view.counterSprite = Spr(Tiles + "counter.png");
+        view.parcelsSprite = Spr(Tiles + "parcels.png");
+        view.windowDark = Spr(Tiles + "window_dark.png");
+        view.windowLit = Spr(Tiles + "window_lit.png");
+        view.slipSprite = Spr(Tiles + "return_slip.png");
+        view.scratchSprite = Spr(Tiles + "return_arrow.png");
+        view.mailboxDark = Spr(Tiles + "mailbox_dark.png");
+        view.mailboxOpen = Spr(Tiles + "mailbox_open.png");
         view.tiles = Child(boardGo, "Tiles").transform;
         view.beams = Child(boardGo, "Beams").transform;
         view.shake = shake;
+        view.outSpeed = 21f;
+        view.backSpeed = 16f;
+        view.boardYOffset = 0.4f;
         view.lampColours = new Color[]
         {
             new Color32(0xff, 0xcf, 0x5c, 255), new Color32(0x6f, 0xe3, 0xd6, 255),
@@ -340,9 +336,12 @@ public static class SceneBuilder
         sfx.thud = Clip("thud"); sfx.lamp = Clip("lamp"); sfx.flip = Clip("flip"); sfx.gate = Clip("gate");
         sfx.undo = Clip("undo"); sfx.ui = Clip("ui"); sfx.empty = Clip("empty"); sfx.clear = Clip("clear");
 
-        game.levels = AssetDatabase.FindAssets("t:TextAsset", new[] { "Assets/Levels" })
-            .Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p)
-            .Select(p => AssetDatabase.LoadAssetAtPath<TextAsset>(p)).ToArray();
+        game.levels = new[]
+        {
+            AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Levels/01 First Light.txt"),
+            AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Levels/02 Round the Corner.txt"),
+            AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Levels/10 Home Signal.txt")
+        };
         game.view = view;
         game.player = postie.GetComponent<Player>();
 
@@ -365,82 +364,53 @@ public static class SceneBuilder
 
         var play = Panel(frame, "Play");
         hud.playPanel = play;
-        hud.levelName = Label(play, "Level Name", "01  FIRST LIGHT", 4, TextAnchor.UpperLeft, Cream, 1, 6, 200);
+        hud.levelName = Label(play, "Level Name", "01/03  RECEIVING", 4, TextAnchor.UpperLeft, Cream, 1, 6, 200);
         hud.pips = new Image[8];
         for (int i = 0; i < 8; i++)
             hud.pips[i] = Img(play, "Light " + (i + 1), UI + "pip_full.png", 320 - 6 - (8 - i) * 9, 2, 7, 9);
         hud.pipFull = Spr(UI + "pip_full.png");
         hud.pipEmpty = Spr(UI + "pip_empty.png");
-        hud.tip = Label(play, "Tip", "TIP LINE ONE\nTIP LINE TWO", 160, TextAnchor.UpperCenter, Dim);
+        hud.tip = Label(play, "Tip", "TIP LINE ONE\nTIP LINE TWO", 152, TextAnchor.UpperCenter, Cream);
 
-        Label(play, "Keys", "Z UNDO  R RETRY", 4, TextAnchor.UpperLeft, new Color32(0x4a, 0x58, 0x7c, 255), 1, 146, 100);
+        Label(play, "Shots", "SHOTS", 4, TextAnchor.UpperLeft, Dim, 1, 240, 36);
+        Label(play, "Keys", "WASD MOVE   ARROWS SHOOT   Z UNDO   R RESTART", 171, TextAnchor.UpperCenter, Cream);
 
-        var clear = Img(play, "Clear Box", UI + "panel.png", 40, 159, 240, 19);
+        var clear = Img(play, "Clear Box", UI + "panel.png", 40, 151, 240, 18);
         clear.type = Image.Type.Sliced;
         hud.clearBox = clear.gameObject;
-        hud.clearPrompt = Label(clear.gameObject, "Prompt", "STREET LIT!   SPACE - NEXT STREET", 6, TextAnchor.UpperCenter, Amber, 1, 0, 240);
+        hud.clearPrompt = Label(clear.gameObject, "Prompt", "ROOM LIT!   SPACE - NEXT ROOM", 6, TextAnchor.UpperCenter, Amber, 1, 0, 240);
         clear.gameObject.SetActive(false);
 
-        var outBox = Img(play, "Out Box", UI + "panel.png", 35, 159, 250, 19);
+        var outBox = Img(play, "Out Box", UI + "panel.png", 35, 151, 250, 18);
         outBox.type = Image.Type.Sliced;
         hud.outBox = outBox.gameObject;
         Label(outBox.gameObject, "Prompt", "OUT OF LIGHT!   Z - UNDO   R - RESTART", 6, TextAnchor.UpperCenter, new Color32(0xff, 0x8f, 0x7a, 255), 1, 0, 250);
         outBox.gameObject.SetActive(false);
 
+        var letter = Img(play, "Letter", UI + "panel.png", 42, 57, 236, 67);
+        letter.type = Image.Type.Sliced;
+        hud.letterBox = letter.gameObject;
+        Label(hud.letterBox, "Heading", "UNDELIVERED LETTER", 8, TextAnchor.UpperCenter, Amber, 1, 0, 236);
+        Label(hud.letterBox, "Message", "IF YOU FIND THIS,\nLEAVE A LIGHT ON FOR ME.\n- THE LAST POSTIE",
+            22, TextAnchor.UpperCenter, Cream, 1, 0, 236);
+        Label(hud.letterBox, "Close", "SPACE - FOLD LETTER", 54, TextAnchor.UpperCenter, Amber, 1, 0, 236);
+        hud.letterBox.SetActive(false);
+
         var title = Panel(frame, "Title");
         hud.titlePanel = title;
         Img(title, "Night", Bg + "town_dark.png", 0, 0, 320, 180);
         Img(title, "Logo", UI + "logo.png", 14, 12, 244, 74);
-        Label(title, "Tagline", "EVERY LIGHT YOU SEND BOUNCES BACK.", 92, TextAnchor.UpperLeft, Cream, 1, 16);
-        hud.pressStart = Label(title, "Press Start", "PRESS SPACE", 140, TextAnchor.UpperCenter, Amber);
+        Label(title, "Tagline", "BOUNCE BACK", 94, TextAnchor.UpperLeft, Cream, 1, 16);
+        Label(title, "Press Start", "SPACE - START SHIFT", 118, TextAnchor.UpperLeft, Amber, 1, 16);
         Label(title, "Keys", "M - SOUND    F11 - FULL SCREEN    ESC - QUIT", 167, TextAnchor.UpperCenter, Dim);
-
-        var selectGo = Panel(frame, "Level Select");
-        hud.selectPanel = selectGo;
-        var select = selectGo.AddComponent<LevelSelect>();
-        game.select = select;
-        var selBg = Img(selectGo, "Night", Bg + "town_dark.png", 0, 0, 320, 180);
-        selBg.color = new Color(0.55f, 0.55f, 0.65f);
-        Label(selectGo, "Heading", "TONIGHT'S ROUND", 14, TextAnchor.UpperCenter, Cream, 2);
-        int count = game.levels.Length;
-        select.stamps = new Image[count];
-        select.numbers = new PixelText[count];
-        select.locks = new Image[count];
-        var cursor = Img(selectGo, "Cursor", UI + "cursor.png", 0, 0, 32, 32);
-        cursor.color = Amber;
-        select.cursor = cursor.rectTransform;
-        for (int i = 0; i < count; i++)
-        {
-            float cx = 160 + (i % 5 - 2) * 40, cy = 66 + (i / 5) * 40;
-            var stamp = Img(selectGo, "Stamp " + (i + 1).ToString("00"), UI + "stamp.png", 0, 0, 26, 26);
-            Centred(stamp.gameObject, cx, cy, 26, 26);
-            select.stamps[i] = stamp;
-            var num = Label(stamp.gameObject, "Number", (i + 1).ToString("00"), 0, TextAnchor.MiddleCenter, new Color32(0x1a, 0x22, 0x38, 255));
-            num.shadow = false;
-            var nrt = num.rectTransform;
-            nrt.anchorMin = Vector2.zero; nrt.anchorMax = Vector2.one; nrt.pivot = new Vector2(0.5f, 0.5f);
-            nrt.offsetMin = Vector2.zero; nrt.offsetMax = new Vector2(1, 0);
-            select.numbers[i] = num;
-            var lockImg = Img(stamp.gameObject, "Lock", UI + "lock.png", 0, 0, 7, 7);
-            var lrt = lockImg.rectTransform;
-            lrt.anchorMin = lrt.anchorMax = lrt.pivot = new Vector2(0.5f, 0.5f);
-            lrt.anchoredPosition = Vector2.zero;
-            lockImg.color = new Color32(0x0e, 0x16, 0x26, 255);
-            select.locks[i] = lockImg;
-        }
-        Centred(cursor.gameObject, 80, 66, 32, 32);
-        cursor.transform.SetAsLastSibling();
-        select.caption = Label(selectGo, "Street Name", "FIRST LIGHT", 130, TextAnchor.UpperCenter, Amber);
-        select.progress = Label(selectGo, "Progress", "0 / 10 STREETS LIT", 143, TextAnchor.UpperCenter, Dim);
-        Label(selectGo, "Keys", "ARROWS - CHOOSE    SPACE - GO    ESC - BACK", 167, TextAnchor.UpperCenter, Dim);
 
         var end = Panel(frame, "Ending");
         hud.endPanel = end;
         Img(end, "Morning", Bg + "town_lit.png", 0, 0, 320, 180);
-        Label(end, "Line 1", "THE HARBOUR IS\nLIT AGAIN.", 12, TextAnchor.UpperLeft, Cream, 2, 14);
-        Label(end, "Line 2", "EVERY LIGHT YOU SENT\nFOUND ITS WAY BACK.", 56, TextAnchor.UpperLeft, Amber, 1, 14);
-        Label(end, "Thanks", "THANKS FOR PLAYING!", 146, TextAnchor.UpperCenter, Cream);
-        Label(end, "Keys", "SPACE - BACK TO THE ROUND", 167, TextAnchor.UpperCenter, Dim);
+        Label(end, "Line 1", "THE POST OFFICE\nIS OPEN.", 12, TextAnchor.UpperLeft, Cream, 2, 14);
+        Label(end, "Line 2", "FOUR LAMPS BACK ON.\nMAIL GOES OUT AT DAWN.", 56, TextAnchor.UpperLeft, Amber, 1, 14);
+        hud.recoveredLetter = Label(end, "Recovered letter", "ONE LOST LETTER FOUND.", 93, TextAnchor.UpperLeft, Amber, 1, 14);
+        Label(end, "Keys", "SPACE - BACK TO TITLE", 167, TextAnchor.UpperCenter, Dim);
 
         var fadeGo = Panel(canvasGo, "Fade");
         var fade = fadeGo.AddComponent<Image>();
@@ -450,7 +420,6 @@ public static class SceneBuilder
         hud.fade = fade;
 
         play.SetActive(false);
-        selectGo.SetActive(false);
         end.SetActive(false);
 
         Directory.CreateDirectory("Assets/Scenes");

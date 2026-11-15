@@ -6,7 +6,6 @@ public class Hud : MonoBehaviour
 {
     [Header("Screens")]
     public GameObject titlePanel;
-    public GameObject selectPanel;
     public GameObject playPanel;
     public GameObject endPanel;
 
@@ -19,27 +18,31 @@ public class Hud : MonoBehaviour
     public GameObject clearBox;
     public PixelText clearPrompt;
     public GameObject outBox;
+    public GameObject letterBox;
 
     [Header("Other")]
-    public PixelText pressStart;
+    public PixelText recoveredLetter;
     public Image fade;
 
+    string roomTip;
+    public bool LetterOpen { get { return letterBox.activeSelf; } }
     public bool Fading { get; private set; }
 
     public void Show(GameObject panel)
     {
         titlePanel.SetActive(panel == titlePanel);
-        selectPanel.SetActive(panel == selectPanel);
         playPanel.SetActive(panel == playPanel);
         endPanel.SetActive(panel == endPanel);
     }
 
-    public void SetLevel(int index, Board board)
+    public void SetLevel(int index, int count, Board board)
     {
-        levelName.Text = (index + 1).ToString("00") + "  " + board.name;
-        tip.Text = string.Join("\n", board.tips.ToArray());
+        levelName.Text = (index + 1).ToString("00") + "/" + count.ToString("00") + "  " + board.name;
+        roomTip = string.Join("\n", board.tips);
+        ShowSlip(false);
         clearBox.SetActive(false);
         outBox.SetActive(false);
+        ShowLetter(false);
         tip.gameObject.SetActive(true);
     }
 
@@ -58,7 +61,7 @@ public class Hud : MonoBehaviour
         clearBox.SetActive(show);
         outBox.SetActive(false);
         tip.gameObject.SetActive(!show);
-        clearPrompt.Text = lastLevel ? "ALL LIT!   SPACE - HEAD HOME" : "STREET LIT!   SPACE - NEXT STREET";
+        clearPrompt.Text = lastLevel ? "ALL LIT!   SPACE - OPEN UP" : "ROOM LIT!   SPACE - NEXT ROOM";
     }
 
     public void ShowOut(bool show)
@@ -67,9 +70,21 @@ public class Hud : MonoBehaviour
         tip.gameObject.SetActive(!show);
     }
 
-    void Update()
+    public void ShowSlip(bool show)
     {
-        if (titlePanel.activeSelf) pressStart.enabled = Time.time % 1.1f < 0.7f;
+        tip.Text = show
+            ? "TORN SLIP - SEND IT BACK THE WAY IT CAME.\nTHE DEAD BOX OPENS ON THE RETURN FROM A BELL."
+            : roomTip;
+    }
+
+    public void ShowLetter(bool show)
+    {
+        letterBox.SetActive(show);
+    }
+
+    public void ShowRecoveredLetter(bool show)
+    {
+        recoveredLetter.gameObject.SetActive(show);
     }
 
     public void FadeThrough(System.Action change)

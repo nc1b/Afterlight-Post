@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum Tile { Floor, Water, Wall, Bell, Mirror, Hinge, Lamp, Gate }
+public enum Tile { Floor, Water, Wall, Bell, Mirror, Hinge, Lamp, Gate, Counter, Mailbox }
 public enum StopKind { Wall, Gate, Bell, Loop }
 
 public struct BoardState
 {
-    public int flips;    
-    public int lit;      
+    public int flips;
+    public int lit;
+    public bool letterFound;
 }
 
 public class Shot
@@ -92,7 +93,9 @@ public class Board
     public Tile TileAt(Vector2Int p)
     {
         char c = At(p);
-        if (c == '#') return Tile.Wall;
+        if (c == '#' || c == 'w') return Tile.Wall;
+        if (c == ':' || c == ',') return Tile.Counter;
+        if (c == 'm') return Tile.Mailbox;
         if (c == '~') return Tile.Water;
         if (c == 'O') return Tile.Bell;
         if (c == '/' || c == '\\') return Tile.Mirror;

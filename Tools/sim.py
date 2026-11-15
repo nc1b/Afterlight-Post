@@ -32,7 +32,7 @@ class Level:
 
     def walkable(self, p, lit):
         c = self.t(p)
-        if c in '.P':
+        if c in '.P?^':
             return True
         if c in 'ABCD':
             return bool(lit >> (ord(c) - 65) & 1)
@@ -59,7 +59,7 @@ class Level:
         while True:
             p = (p[0] + DIRS[d][0], p[1] + DIRS[d][1])
             c = self.t(p)
-            if c == '#':
+            if c in '#w':
                 stop = 'wall'; break
             if c in 'ABCD' and not (lit >> (ord(c) - 65) & 1):
                 stop = 'gate'; break
