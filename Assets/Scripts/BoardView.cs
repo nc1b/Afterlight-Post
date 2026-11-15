@@ -177,7 +177,6 @@ public class BoardView : MonoBehaviour
         int last = path.Count - 1;
         flippedThisShot = 0;
         lampsThisShot = 0;
-        bool opensMailbox = board.ReturnsToMailbox(shot);
 
         pulse.gameObject.SetActive(true);
         SetPulseColour(outColour);
@@ -225,13 +224,12 @@ public class BoardView : MonoBehaviour
         for (int i = last; i >= 1; i--)
         {
             Touch(path[i], shot.Charged);
-            if (opensMailbox && path[i] == board.secret.mailbox)
+            if (shot.OpensMailbox && !board.state.letterFound && path[i] == board.secret.mailbox)
             {
                 board.state.letterFound = true;
                 mailbox.sprite = mailboxOpen;
                 Sfx.Play(Sfx.I.lamp, 1.35f);
                 Burst(World(path[i]), chargedColour, 12);
-                opensMailbox = false;
             }
             segments[i - 1].enabled = false;
             yield return Glide(World(path[i]), World(path[i - 1]), 1f / backSpeed);

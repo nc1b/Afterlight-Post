@@ -168,6 +168,7 @@ public class Game : MonoBehaviour
         player.Place(board.start, view.World(board.start));
         hud.SetLevel(index, board);
         hud.SetShots(shotsLeft, board.shots);
+        RefreshClue();
     }
 
     void UpdatePlay(bool confirm, bool escape)
@@ -192,7 +193,6 @@ public class Game : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.LeftArrow)) Fire(3);
         if (firing) return;
 
-        if (!player.Moving) RefreshClue();
         int dir = -1;
         if (Input.GetKey(KeyCode.W)) dir = 0;
         else if (Input.GetKey(KeyCode.D)) dir = 1;
@@ -215,6 +215,7 @@ public class Game : MonoBehaviour
             return false;
         }
         player.WalkTo(target, view.World(target));
+        RefreshClue();
         Sfx.Play(Sfx.I.step, Random.Range(0.9f, 1.1f), 0.6f);
         return true;
     }
