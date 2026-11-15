@@ -1,0 +1,12 @@
+name: Return to Sender
+shots: 3
+tip: NO BELL, NO GLOW.  BUT A STRIPED MIRROR
+tip: FLIPS WHENEVER A LIGHT BOUNCES BACK PAST IT.
+map:
+#############
+#.....#.....#
+#.....#..O..#
+#.....#..a..#
+#.P...~..>..#
+#.....#.....#
+#############

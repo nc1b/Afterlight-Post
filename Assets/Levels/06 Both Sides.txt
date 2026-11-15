@@ -1,0 +1,13 @@
+name: Both Sides
+shots: 5
+tip: EVEN A WASTED LIGHT FLIPS WHAT IT TOUCHED.
+map:
+#############
+#~~~~~O~~~~~#
+#~~~~~a~~~~~#
+#~~~~~~~~~~~#
+#..P.~>~~b~O#
+#.~~~~~~~~~~#
+#.~~~~.~~~~~#
+#.......~~~~#
+#############

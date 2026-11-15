@@ -1,0 +1,14 @@
+name: Lock Keeper
+shots: 5
+tip: A SHUT GATE BOUNCES LIGHT BACK TOO.
+tip: THAT STOPS BEING TRUE ONCE IT OPENS.
+map:
+#############
+#~~O~~~~~O~~#
+#~~c~~~~~b~~#
+#~~~~~~~~~~~#
+#~~<~~A~~>aO#
+#~~~~~~~~~~~#
+#~~~~~~~~~~~#
+#P..........#
+#############

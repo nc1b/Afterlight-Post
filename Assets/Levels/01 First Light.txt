@@ -1,0 +1,11 @@
+name: First Light
+shots: 3
+tip: WASD TO WALK.  ARROW KEYS TO SEND A LIGHT.
+tip: RING THE BELL AND IT BOUNCES BACK BRIGHT.
+map:
+#############
+#...........#
+#.....a...O.#
+#...........#
+#.P.........#
+#############

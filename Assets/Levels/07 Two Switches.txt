@@ -1,0 +1,13 @@
+name: Two Switches
+shots: 3
+tip: ONE LIGHT CAN FLIP MORE THAN ONE MIRROR.
+map:
+#############
+#~~~~~O~~~O~#
+#~~~~~a~~~b~#
+#~~~~~~~~~~~#
+#..~~~>~~~<~#
+#.~~~~~~~~~~#
+#.~~~~~~~~~~#
+#P..........#
+#############

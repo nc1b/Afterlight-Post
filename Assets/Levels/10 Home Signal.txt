@@ -1,0 +1,13 @@
+name: Home Signal
+shots: 6
+tip: LAST STREET ON THE ROUND.  BRING THEM ALL HOME.
+map:
+###############
+#~~O~~~~~O~~~~#
+#~~c~~/~~b~d~O#
+#~~~~~~~~~~~~~#
+#~~<~~A~~>aO~~#
+#~~~~~\~~~~~~<#
+#~~~~~~~~~~~~~#
+#P.........C..#
+###############

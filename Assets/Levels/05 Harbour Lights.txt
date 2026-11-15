@@ -1,0 +1,14 @@
+name: Harbour Lights
+shots: 2
+tip: THE BATTERY ONLY HOLDS TWO LIGHTS HERE.
+tip: Z TAKES ONE BACK.  R STARTS OVER.
+map:
+#############
+#P..........#
+#.~/~~a~\~~.#
+#.~~~~~~~~~.#
+#.~b~~O~/~~.#
+#.~~~~~~~~~.#
+#.~~~~\~~c~.#
+#...........#
+#############

@@ -1,0 +1,12 @@
+name: Round the Corner
+shots: 3
+tip: MIRRORS TURN THE LIGHT.
+tip: IT ALWAYS COMES HOME THE WAY IT WENT.
+map:
+#############
+#.......O...#
+#.......a...#
+#...........#
+#...b.../...#
+#.P.........#
+#############

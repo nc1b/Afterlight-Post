@@ -1,0 +1,11 @@
+name: Night Gate
+shots: 3
+tip: A LIT LAMP OPENS THE GATE OF ITS COLOUR.
+map:
+###############
+#......#......#
+#......#....O.#
+#.O.a..A......#
+#.P....#..b./.#
+#......#......#
+###############
