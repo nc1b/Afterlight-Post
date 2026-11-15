@@ -8,8 +8,10 @@ public class Game : MonoBehaviour
     public BoardView view;
     public Player player;
     public Hud hud;
+    public LevelSelect select;
 
-    enum Mode { Title, Play, End }
+    enum Mode { Title, Select, Play, End }
+
     struct Snapshot
     {
         public BoardState state;
@@ -18,15 +20,19 @@ public class Game : MonoBehaviour
         public int shots;
     }
 
+    const string SaveKey = "streets_lit";
+
     Mode mode = Mode.Title;
     Board board;
     int levelIndex;
     int shotsLeft;
+    int clearedMask;
+    int cursor;
     bool firing;
     bool cleared;
-    bool letterRecovered;
     float clearedAt;
     float holdTimer;
+    string[] levelNames;
     readonly Stack<Snapshot> history = new Stack<Snapshot>();
 
     public Board Board { get { return board; } }
@@ -37,6 +43,9 @@ public class Game : MonoBehaviour
     void Start()
     {
         Application.targetFrameRate = 60;
+        clearedMask = PlayerPrefs.GetInt(SaveKey, 0);
+        levelNames = new string[levels.Length];
+        for (int i = 0; i < levels.Length; i++) levelNames[i] = Board.Parse(levels[i].text).name;
         player.gameObject.SetActive(false);
         hud.Show(hud.titlePanel);
     }
@@ -49,37 +58,89 @@ public class Game : MonoBehaviour
 
         bool confirm = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
         bool escape = Input.GetKeyDown(KeyCode.Escape);
+
         switch (mode)
         {
             case Mode.Title:
-                if (confirm)
-                {
-                    letterRecovered = false;
-                    Sfx.Play(Sfx.I.ui);
-                    OpenLevel(0);
-                }
+                if (confirm) { Sfx.Play(Sfx.I.ui); OpenSelect(); }
                 else if (escape) Application.Quit();
                 break;
+
+            case Mode.Select:
+                UpdateSelect(confirm, escape);
+                break;
+
             case Mode.Play:
                 UpdatePlay(confirm, escape);
                 break;
+
             case Mode.End:
-                if (confirm || escape) ReturnToTitle();
+                if (confirm || escape) { Sfx.Play(Sfx.I.ui); OpenSelect(); }
                 break;
         }
     }
 
-    void ReturnToTitle()
+
+    bool IsCleared(int i)
     {
-        Sfx.Play(Sfx.I.ui);
+        return (clearedMask & (1 << i)) != 0;
+    }
+
+    bool IsUnlocked(int i)
+    {
+        return i < 2 || IsCleared(i - 1) || IsCleared(i - 2);
+    }
+
+    public void OpenSelect()
+    {
         hud.FadeThrough(() =>
         {
-            mode = Mode.Title;
-            view.gameObject.SetActive(false);
+            mode = Mode.Select;
             player.gameObject.SetActive(false);
-            hud.Show(hud.titlePanel);
+            hud.Show(hud.selectPanel);
+            var unlocked = new bool[levels.Length];
+            var done = new bool[levels.Length];
+            for (int i = 0; i < levels.Length; i++)
+            {
+                unlocked[i] = IsUnlocked(i);
+                done[i] = IsCleared(i);
+            }
+            select.Refresh(unlocked, done);
+            MoveCursor(cursor);
         });
     }
+
+    void MoveCursor(int to)
+    {
+        cursor = Mathf.Clamp(to, 0, levels.Length - 1);
+        select.SetCursor(cursor, IsUnlocked(cursor) ? levelNames[cursor] : "LOCKED");
+    }
+
+    void UpdateSelect(bool confirm, bool escape)
+    {
+        int move = 0;
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) move = -1;
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) move = 1;
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) move = -select.columns;
+        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) move = select.columns;
+        if (move != 0 && cursor + move >= 0 && cursor + move < levels.Length)
+        {
+            MoveCursor(cursor + move);
+            Sfx.Play(Sfx.I.ui);
+        }
+
+        if (confirm)
+        {
+            if (IsUnlocked(cursor)) { Sfx.Play(Sfx.I.send); OpenLevel(cursor); }
+            else Sfx.Play(Sfx.I.empty);
+        }
+        else if (escape)
+        {
+            Sfx.Play(Sfx.I.undo);
+            hud.FadeThrough(() => { mode = Mode.Title; hud.Show(hud.titlePanel); });
+        }
+    }
+
 
     public void OpenLevel(int index)
     {
@@ -87,7 +148,6 @@ public class Game : MonoBehaviour
         {
             mode = Mode.Play;
             hud.Show(hud.playPanel);
-            view.gameObject.SetActive(true);
             LoadLevel(index);
         });
     }
@@ -96,32 +156,29 @@ public class Game : MonoBehaviour
     {
         StopAllCoroutines();
         levelIndex = index;
+        cursor = index;
         board = Board.Parse(levels[index].text);
         shotsLeft = board.shots;
         firing = false;
         cleared = false;
-        holdTimer = 0;
         history.Clear();
 
         view.Build(board);
         player.gameObject.SetActive(true);
         player.Place(board.start, view.World(board.start));
-        hud.SetLevel(index, levels.Length, board);
+        hud.SetLevel(index, board);
         hud.SetShots(shotsLeft, board.shots);
     }
 
     void UpdatePlay(bool confirm, bool escape)
     {
+        if (hud.LetterOpen && (confirm || escape)) { hud.ShowLetter(null); return; }
+        if (escape) { Sfx.Play(Sfx.I.undo); OpenSelect(); return; }
         if (firing) return;
+
         if (Input.GetKeyDown(KeyCode.R)) { Sfx.Play(Sfx.I.undo); LoadLevel(levelIndex); return; }
         if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyDown(KeyCode.Backspace)) { Undo(); return; }
-
-        if (hud.LetterOpen)
-        {
-            if (confirm || escape) hud.ShowLetter(false);
-            return;
-        }
-        if (escape) { ReturnToTitle(); return; }
+        if (hud.LetterOpen) return;
 
         if (cleared)
         {
@@ -135,12 +192,12 @@ public class Game : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.LeftArrow)) Fire(3);
         if (firing) return;
 
+        if (!player.Moving) RefreshClue();
         int dir = -1;
         if (Input.GetKey(KeyCode.W)) dir = 0;
         else if (Input.GetKey(KeyCode.D)) dir = 1;
         else if (Input.GetKey(KeyCode.S)) dir = 2;
         else if (Input.GetKey(KeyCode.A)) dir = 3;
-        if (!player.Moving) hud.ShowSlip(board.At(player.cell) == '?');
         if (dir < 0) { holdTimer = 0; return; }
         holdTimer -= Time.deltaTime;
         if (!player.Moving && holdTimer <= 0) Step(dir);
@@ -158,7 +215,6 @@ public class Game : MonoBehaviour
             return false;
         }
         player.WalkTo(target, view.World(target));
-        holdTimer = 0.14f;
         Sfx.Play(Sfx.I.step, Random.Range(0.9f, 1.1f), 0.6f);
         return true;
     }
@@ -189,12 +245,16 @@ public class Game : MonoBehaviour
         yield return view.PlayShot(shot);
         player.Hop();
         firing = false;
-        if (board.state.letterFound && !alreadyFound) hud.ShowLetter(true);
+        if (!alreadyFound && board.state.letterFound)
+            hud.ShowLetter(board.secret.letter);
 
         if (board.Solved)
         {
             cleared = true;
             clearedAt = Time.time;
+            clearedMask |= 1 << levelIndex;
+            PlayerPrefs.SetInt(SaveKey, clearedMask);
+            PlayerPrefs.Save();
             view.Celebrate();
             Sfx.Play(Sfx.I.clear);
             hud.ShowClear(true, levelIndex == levels.Length - 1);
@@ -213,20 +273,25 @@ public class Game : MonoBehaviour
         board.state = s.state;
         shotsLeft = s.shots;
         cleared = false;
-        holdTimer = 0;
         view.Refresh();
         player.Place(s.cell, view.World(s.cell));
         player.Face(s.facing);
         hud.SetShots(shotsLeft, board.shots);
         hud.ShowClear(false, false);
-        hud.ShowLetter(false);
-        hud.ShowSlip(board.At(player.cell) == '?');
+        hud.ShowOut(false);
+        hud.ShowLetter(null);
+        RefreshClue();
         Sfx.Play(Sfx.I.undo);
+    }
+
+    void RefreshClue()
+    {
+        var secret = board.secret;
+        hud.ShowClue(secret != null && player.cell == secret.slip ? secret.clue : null);
     }
 
     void NextLevel()
     {
-        letterRecovered |= board.state.letterFound;
         Sfx.Play(Sfx.I.ui);
         if (levelIndex < levels.Length - 1)
         {
@@ -236,9 +301,7 @@ public class Game : MonoBehaviour
         hud.FadeThrough(() =>
         {
             mode = Mode.End;
-            view.gameObject.SetActive(false);
             player.gameObject.SetActive(false);
-            hud.ShowRecoveredLetter(letterRecovered);
             hud.Show(hud.endPanel);
         });
     }

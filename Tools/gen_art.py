@@ -74,38 +74,6 @@ save(floor(1), 'Tiles', 'floor_a.png'); save(floor(2), 'Tiles', 'floor_b.png')
 save(water(0), 'Tiles', 'water_0.png'); save(water(1), 'Tiles', 'water_1.png')
 save(wall(3), 'Tiles', 'wall_a.png'); save(wall(8), 'Tiles', 'wall_b.png')
 
-def counter(parcels):
-    im = Image.new('RGBA', (16, 16), hexc('4d3d45'))
-    draw = ImageDraw.Draw(im)
-    draw.line((0, 1, 13, 1), hexc('695051'))
-    draw.line((0, 15, 15, 15), hexc('312735'))
-    draw.line((15, 2, 15, 15), hexc('382b37'))
-    if parcels:
-        draw.polygon([(1, 7), (2, 6), (8, 6), (8, 11), (1, 11)], fill=K)
-        draw.rectangle((2, 7, 7, 10), fill=hexc('a07861'))
-        draw.line((4, 7, 4, 10), hexc('d1af82'))
-        draw.polygon([(8, 4), (13, 3), (14, 4), (14, 12), (8, 12)], fill=K)
-        draw.rectangle((9, 5, 13, 11), fill=hexc('7f6255'))
-        draw.line((10, 5, 10, 10), hexc('c39870'))
-        draw.point((12, 8), hexc('d6bda0'))
-    return im
-
-def office_window(lit):
-    im = Image.new('RGBA', (16, 16))
-    draw = ImageDraw.Draw(im)
-    draw.polygon([(2, 2), (12, 1), (13, 2), (13, 11), (2, 11)], fill=K)
-    glass = hexc('ffcf5c' if lit else '292f46')
-    draw.rectangle((3, 3, 12, 10), fill=glass)
-    draw.line((7, 3, 7, 10), K)
-    draw.line((3, 7, 12, 7), K)
-    draw.line((2, 11, 13, 11), hexc('817065'))
-    return im
-
-save(counter(False), 'Tiles', 'counter.png')
-save(counter(True), 'Tiles', 'parcels.png')
-save(office_window(False), 'Tiles', 'window_dark.png')
-save(office_window(True), 'Tiles', 'window_lit.png')
-
 def mailbox(lit):
     im = Image.new('RGBA', (16, 16))
     draw = ImageDraw.Draw(im)
@@ -447,17 +415,13 @@ save(grid([
     "KKKKKKK"], {'.': (0, 0, 0, 0), 'K': (255, 255, 255, 255)}), 'UI', 'lock.png')
 save(Image.new('RGBA', (4, 4), (255, 255, 255, 255)), 'UI', 'white.png')
 
-def lerp(a, b, t): return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(4))
-
 def sea_bg():
-    rng = random.Random(11)
     im = Image.new('RGBA', (320, 180), hexc('0b1422'))
-    for _ in range(170):
-        x, y, n = rng.randrange(320), rng.randrange(180), rng.randrange(2, 6)
-        d = math.hypot((x - 160) / 160, (y - 90) / 90)
-        col = lerp(hexc('13243a'), hexc('0b1422'), min(1, d * .8))
-        for i in range(n):
-            if x + i < 320: im.putpixel((x + i, y), col)
+    draw = ImageDraw.Draw(im)
+    for x, y, n in [(9, 45, 9), (29, 111, 12), (11, 131, 6),
+                    (265, 39, 8), (302, 59, 11), (279, 122, 16), (298, 147, 7)]:
+        draw.line((x, y, x + n, y), hexc('1c2a3e'))
+        draw.line((x + 4, y + 2, x + n - 1, y + 2), hexc('142236'))
     return im
 save(sea_bg(), 'Backgrounds', 'sea.png')
 

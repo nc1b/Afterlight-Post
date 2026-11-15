@@ -1,13 +1,11 @@
-name: Receiving
+name: First Light
 shots: 3
-tip: LIGHT EVERY LAMP TO REOPEN THE POST OFFICE.
-tip: BANK OFF A MIRROR. THE BELL SENDS IT BACK LIT.
+tip: WASD TO WALK.  ARROW KEYS TO SEND A LIGHT.
+tip: RING THE BELL AND IT BOUNCES BACK BRIGHT.
 map:
-###w##w#w####
-#...#########
-#...:,:::O:,#
-#...:,:::a::#
-#...:::::/:,#
-#.....:,,:::#
-#.P...#######
+#############
+#...........#
+#.....a...O.#
+#...........#
+#.P.........#
 #############

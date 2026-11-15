@@ -1,17 +1,13 @@
 # Afterlight Post
 
-Bounce Back is a three-room Unity puzzle set in a dark harbour post office. Aim a light through the mirrors to ring a bell. The pulse comes back along the same path and lights any lamps it crosses.
+Send a pulse through mirrors to ring a bell. The light retraces its route and lights the lamps on the way back.
 
 ## Launch
 
-- **Windows demo**  Extract the entire `Afterlight-Post-Windows.zip` archive, then double-click `Afterlight Post.exe` inside the extracted folder.
-- **Unity project**  Add this repository folder to Unity Hub. Open it with Unity **6000.6.9f1**, open `Assets/Scenes/Main.unity`, and click **Play**.
-- Press **Space** at the title screen to start the shift.
+- **Windows**  Extract the entire demo ZIP and double-click `Afterlight Post.exe`.
+- **Unity**  Open the project with Unity **6000.6.9f1**, open `Assets/Scenes/Main.unity`, and click **Play**.
+- Press **Space**, choose **First Light**, then press **Space** again.
 
-Move with **WASD** and shoot with the **arrow keys**. **Z** undoes the last shot and **R** restarts the current room. **Space** continues when a room is lit.
+The original ten streets, stamp selector, unlocks, and ending are back. The harbour and tile art use chunky pixels, flatter colours, and uneven outlines. Two optional mailboxes hide notes that you can discover along the round.
 
-## What changed
-
-Receiving teaches one mirror bounce, the Sorting Room adds a second mirror, and Dispatch asks for both paths. The rooms share the original postie, mirrors, shots, bells, lamps, and sounds. Hand-drawn pixel parcels and windows frame the puzzles, and the post office warms up as the lights come on. The Sorting Room has one optional letter to find.
-
-[Demo walkthrough with spoilers](WALKTHROUGH.md)
+[Live demo walkthrough with spoilers](WALKTHROUGH.md)

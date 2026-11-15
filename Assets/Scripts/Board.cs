@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum Tile { Floor, Water, Wall, Bell, Mirror, Hinge, Lamp, Gate, Counter, Mailbox }
+public enum Tile { Floor, Water, Wall, Bell, Mirror, Hinge, Lamp, Gate }
 public enum StopKind { Wall, Gate, Bell, Loop }
 
 public struct BoardState
@@ -9,6 +9,14 @@ public struct BoardState
     public int flips;
     public int lit;
     public bool letterFound;
+}
+
+public sealed class SecretMail
+{
+    public Vector2Int mailbox, slip, scratch;
+    public int scratchDirection;
+    public string clue;
+    public string letter;
 }
 
 public class Shot
@@ -33,6 +41,7 @@ public class Board
     public Vector2Int start;
     public int goal;
     public BoardState state;
+    public SecretMail secret;
 
     char[,] cells;
     int[,] hinge;
@@ -58,6 +67,16 @@ public class Board
             if (key == "name") board.name = value;
             else if (key == "shots") board.shots = int.Parse(value);
             else if (key == "tip") board.tips.Add(value);
+            else if (key == "mailbox") board.Secret().mailbox = ReadCell(value.Split(','));
+            else if (key == "slip") board.Secret().slip = ReadCell(value.Split(','));
+            else if (key == "scratch")
+            {
+                string[] parts = value.Split(',');
+                board.Secret().scratch = ReadCell(parts);
+                board.secret.scratchDirection = int.Parse(parts[2]);
+            }
+            else if (key == "clue") board.Secret().clue = value.Replace('|', '\n');
+            else if (key == "letter") board.Secret().letter = value.Replace('|', '\n');
         }
 
         board.height = rows.Count;
@@ -80,6 +99,31 @@ public class Board
         return board;
     }
 
+    SecretMail Secret()
+    {
+        if (secret == null) secret = new SecretMail();
+        return secret;
+    }
+
+    static Vector2Int ReadCell(string[] pair)
+    {
+        return new Vector2Int(int.Parse(pair[0]), int.Parse(pair[1]));
+    }
+
+    public bool ReturnsToMailbox(Shot shot)
+    {
+        if (secret == null || state.letterFound || shot.stop != StopKind.Wall) return false;
+        bool banked = false;
+        for (int i = 1; i < shot.path.Count; i++)
+        {
+            Vector2Int cell = shot.path[i];
+            Tile tile = TileAt(cell);
+            if (tile == Tile.Mirror || tile == Tile.Hinge) banked = true;
+            if (banked && cell == secret.mailbox) return true;
+        }
+        return false;
+    }
+
     public bool Inside(Vector2Int p)
     {
         return p.x >= 0 && p.y >= 0 && p.x < width && p.y < height;
@@ -93,9 +137,7 @@ public class Board
     public Tile TileAt(Vector2Int p)
     {
         char c = At(p);
-        if (c == '#' || c == 'w') return Tile.Wall;
-        if (c == ':' || c == ',') return Tile.Counter;
-        if (c == 'm') return Tile.Mailbox;
+        if (c == '#') return Tile.Wall;
         if (c == '~') return Tile.Water;
         if (c == 'O') return Tile.Bell;
         if (c == '/' || c == '\\') return Tile.Mirror;
