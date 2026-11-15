@@ -168,15 +168,18 @@ public class Game : MonoBehaviour
         player.Place(board.start, view.World(board.start));
         hud.SetLevel(index, board);
         hud.SetShots(shotsLeft, board.shots);
+        RefreshClue();
     }
 
     void UpdatePlay(bool confirm, bool escape)
     {
+        if (hud.LetterOpen && (confirm || escape)) { hud.ShowLetter(null); return; }
         if (escape) { Sfx.Play(Sfx.I.undo); OpenSelect(); return; }
         if (firing) return;
 
         if (Input.GetKeyDown(KeyCode.R)) { Sfx.Play(Sfx.I.undo); LoadLevel(levelIndex); return; }
         if (Input.GetKeyDown(KeyCode.Z) || Input.GetKeyDown(KeyCode.Backspace)) { Undo(); return; }
+        if (hud.LetterOpen) return;
 
         if (cleared)
         {
@@ -212,6 +215,7 @@ public class Game : MonoBehaviour
             return false;
         }
         player.WalkTo(target, view.World(target));
+        RefreshClue();
         Sfx.Play(Sfx.I.step, Random.Range(0.9f, 1.1f), 0.6f);
         return true;
     }
@@ -238,9 +242,12 @@ public class Game : MonoBehaviour
     {
         firing = true;
         Shot shot = board.Trace(player.cell, dir);
+        bool alreadyFound = board.state.letterFound;
         yield return view.PlayShot(shot);
         player.Hop();
         firing = false;
+        if (!alreadyFound && board.state.letterFound)
+            hud.ShowLetter(board.secret.letter);
 
         if (board.Solved)
         {
@@ -273,7 +280,15 @@ public class Game : MonoBehaviour
         hud.SetShots(shotsLeft, board.shots);
         hud.ShowClear(false, false);
         hud.ShowOut(false);
+        hud.ShowLetter(null);
+        RefreshClue();
         Sfx.Play(Sfx.I.undo);
+    }
+
+    void RefreshClue()
+    {
+        var secret = board.secret;
+        hud.ShowClue(secret != null && player.cell == secret.slip ? secret.clue : null);
     }
 
     void NextLevel()

@@ -272,6 +272,7 @@ public static class SceneBuilder
         view.mirrorPrefab = mirrorP; view.hingePrefab = hingeP; view.lampPrefab = lampP; view.gatePrefab = gateP; view.beamPrefab = beamP;
         view.floorSprites = new[] { Spr(Tiles + "floor_a.png"), Spr(Tiles + "floor_b.png") };
         view.wallSprites = new[] { Spr(Tiles + "wall_a.png"), Spr(Tiles + "wall_b.png") };
+        SetSecretProps(view);
         view.tiles = Child(boardGo, "Tiles").transform;
         view.beams = Child(boardGo, "Beams").transform;
         view.shake = shake;
@@ -387,6 +388,8 @@ public static class SceneBuilder
         Label(outBox.gameObject, "Prompt", "OUT OF LIGHT!   Z - UNDO   R - RESTART", 6, TextAnchor.UpperCenter, new Color32(0xff, 0x8f, 0x7a, 255), 1, 0, 250);
         outBox.gameObject.SetActive(false);
 
+        AddLetterPanel(hud);
+
         var title = Panel(frame, "Title");
         hud.titlePanel = title;
         Img(title, "Night", Bg + "town_dark.png", 0, 0, 320, 180);
@@ -455,6 +458,25 @@ public static class SceneBuilder
 
         Directory.CreateDirectory("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, ScenePath);
+    }
+
+    static void SetSecretProps(BoardView view)
+    {
+        view.slipSprite = Spr(Tiles + "return_slip.png");
+        view.scratchSprite = Spr(Tiles + "return_arrow.png");
+        view.mailboxDark = Spr(Tiles + "mailbox_dark.png");
+        view.mailboxOpen = Spr(Tiles + "mailbox_open.png");
+    }
+
+    static void AddLetterPanel(Hud hud)
+    {
+        var letter = Img(hud.playPanel, "Letter", UI + "panel.png", 42, 57, 236, 67);
+        letter.type = Image.Type.Sliced;
+        hud.letterBox = letter.gameObject;
+        hud.letterText = Label(hud.letterBox, "Message", "LETTER\n\n\n",
+            8, TextAnchor.UpperCenter, Cream, 1, 0, 236);
+        Label(hud.letterBox, "Close", "SPACE - FOLD LETTER", 54, TextAnchor.UpperCenter, Amber, 1, 0, 236);
+        hud.letterBox.SetActive(false);
     }
 
     static void ProjectSetup()

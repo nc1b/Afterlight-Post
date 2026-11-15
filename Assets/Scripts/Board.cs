@@ -6,8 +6,36 @@ public enum StopKind { Wall, Gate, Bell, Loop }
 
 public struct BoardState
 {
-    public int flips;    
-    public int lit;      
+    public int flips;
+    public int lit;
+    public bool letterFound;
+}
+
+public sealed class SecretMail
+{
+    public Vector2Int mailbox, slip, scratch;
+    public int scratchDirection;
+    public string clue;
+    public string letter;
+
+    // Mailbox, slip, and scratch positions, followed by the scratch direction.
+    public static SecretMail Parse(string value)
+    {
+        string[] fields = value.Split(' ');
+        return new SecretMail
+        {
+            mailbox = ReadCell(fields[0]),
+            slip = ReadCell(fields[1]),
+            scratch = ReadCell(fields[2]),
+            scratchDirection = int.Parse(fields[3])
+        };
+    }
+
+    static Vector2Int ReadCell(string value)
+    {
+        string[] xy = value.Split(',');
+        return new Vector2Int(int.Parse(xy[0]), int.Parse(xy[1]));
+    }
 }
 
 public class Shot
@@ -15,7 +43,9 @@ public class Shot
     public List<Vector2Int> path = new List<Vector2Int>();
     public StopKind stop;
     public int endDir;
+    public bool passedMailbox;
     public bool Charged { get { return stop == StopKind.Bell; } }
+    public bool OpensMailbox { get { return passedMailbox && stop == StopKind.Wall; } }
 }
 
 public class Board
@@ -32,6 +62,7 @@ public class Board
     public Vector2Int start;
     public int goal;
     public BoardState state;
+    public SecretMail secret;
 
     char[,] cells;
     int[,] hinge;
@@ -57,6 +88,9 @@ public class Board
             if (key == "name") board.name = value;
             else if (key == "shots") board.shots = int.Parse(value);
             else if (key == "tip") board.tips.Add(value);
+            else if (key == "mail") board.secret = SecretMail.Parse(value);
+            else if (key == "clue") board.secret.clue = value.Replace('|', '\n');
+            else if (key == "letter") board.secret.letter = value.Replace('|', '\n');
         }
 
         board.height = rows.Count;
@@ -145,6 +179,7 @@ public class Board
         var seen = new HashSet<int>();
         Vector2Int p = from;
         shot.path.Add(p);
+        bool banked = false;
         while (true)
         {
             Vector2Int next = p + Dirs[dir];
@@ -154,9 +189,11 @@ public class Board
             if (!seen.Add((next.y * width + next.x) * 4 + dir)) { shot.stop = StopKind.Loop; break; }
             p = next;
             shot.path.Add(p);
+            if (banked && secret != null && p == secret.mailbox) shot.passedMailbox = true;
             if (t == Tile.Bell) { shot.stop = StopKind.Bell; break; }
             if (t == Tile.Mirror || t == Tile.Hinge)
             {
+                banked = true;
                 dir = ((IsSlash(p) ? 1 : 3) - dir + 4) % 4;
             }
         }

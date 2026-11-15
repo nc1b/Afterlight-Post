@@ -18,6 +18,10 @@ public class BoardView : MonoBehaviour
     [Header("Variants")]
     public Sprite[] floorSprites;
     public Sprite[] wallSprites;
+    public Sprite slipSprite;
+    public Sprite scratchSprite;
+    public Sprite mailboxDark;
+    public Sprite mailboxOpen;
 
     [Header("Scene")]
     public Transform tiles;
@@ -40,6 +44,7 @@ public class BoardView : MonoBehaviour
 
     Board board;
     Vector3 origin;
+    SpriteRenderer mailbox;
     readonly Dictionary<Vector2Int, MirrorView> mirrors = new Dictionary<Vector2Int, MirrorView>();
     readonly Dictionary<Vector2Int, LampView> lamps = new Dictionary<Vector2Int, LampView>();
     readonly Dictionary<Vector2Int, GateView> gates = new Dictionary<Vector2Int, GateView>();
@@ -63,6 +68,7 @@ public class BoardView : MonoBehaviour
         lamps.Clear();
         gates.Clear();
         bells.Clear();
+        mailbox = null;
         ClearBeam();
         pulse.gameObject.SetActive(false);
 
@@ -118,7 +124,25 @@ public class BoardView : MonoBehaviour
                 }
             }
         }
+        if (b.secret != null)
+        {
+            mailbox = AddProp("Dead mailbox", mailboxDark, b.secret.mailbox);
+            AddProp("Torn slip", slipSprite, b.secret.slip);
+            var scratch = AddProp("Scratched arrow", scratchSprite, b.secret.scratch);
+            scratch.transform.localRotation = Quaternion.Euler(0, 0, -90 * b.secret.scratchDirection);
+        }
         Refresh();
+    }
+
+    SpriteRenderer AddProp(string label, Sprite sprite, Vector2Int cell)
+    {
+        var prop = new GameObject(label);
+        prop.transform.SetParent(tiles);
+        prop.transform.position = World(cell);
+        var renderer = prop.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.sortingOrder = 2;
+        return renderer;
     }
 
     bool StandsInWater(Vector2Int cell, Tile tile)
@@ -140,6 +164,7 @@ public class BoardView : MonoBehaviour
         StopAllCoroutines();
         ClearBeam();
         pulse.gameObject.SetActive(false);
+        if (mailbox != null) mailbox.sprite = board.state.letterFound ? mailboxOpen : mailboxDark;
         foreach (var pair in mirrors) pair.Value.Set(board.IsSlash(pair.Key));
         foreach (var pair in lamps) pair.Value.SetLit(board.IsLit(board.ColourAt(pair.Key)), false);
         foreach (var pair in gates) pair.Value.SetOpen(board.IsLit(board.ColourAt(pair.Key)), false);
@@ -199,6 +224,13 @@ public class BoardView : MonoBehaviour
         for (int i = last; i >= 1; i--)
         {
             Touch(path[i], shot.Charged);
+            if (shot.OpensMailbox && !board.state.letterFound && path[i] == board.secret.mailbox)
+            {
+                board.state.letterFound = true;
+                mailbox.sprite = mailboxOpen;
+                Sfx.Play(Sfx.I.lamp, 1.35f);
+                Burst(World(path[i]), chargedColour, 12);
+            }
             segments[i - 1].enabled = false;
             yield return Glide(World(path[i]), World(path[i - 1]), 1f / backSpeed);
         }

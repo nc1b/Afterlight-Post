@@ -19,12 +19,16 @@ public class Hud : MonoBehaviour
     public GameObject clearBox;
     public PixelText clearPrompt;
     public GameObject outBox;
+    public GameObject letterBox;
+    public PixelText letterText;
 
     [Header("Other")]
     public PixelText pressStart;
     public Image fade;
 
     public bool Fading { get; private set; }
+    public bool LetterOpen { get { return letterBox.activeSelf; } }
+    string roomTip;
 
     public void Show(GameObject panel)
     {
@@ -37,7 +41,9 @@ public class Hud : MonoBehaviour
     public void SetLevel(int index, Board board)
     {
         levelName.Text = (index + 1).ToString("00") + "  " + board.name;
-        tip.Text = string.Join("\n", board.tips.ToArray());
+        roomTip = string.Join("\n", board.tips);
+        ShowClue(null);
+        ShowLetter(null);
         clearBox.SetActive(false);
         outBox.SetActive(false);
         tip.gameObject.SetActive(true);
@@ -65,6 +71,17 @@ public class Hud : MonoBehaviour
     {
         outBox.SetActive(show);
         tip.gameObject.SetActive(!show);
+    }
+
+    public void ShowClue(string clue)
+    {
+        tip.Text = clue ?? roomTip;
+    }
+
+    public void ShowLetter(string letter)
+    {
+        letterText.Text = letter;
+        letterBox.SetActive(letter != null);
     }
 
     void Update()

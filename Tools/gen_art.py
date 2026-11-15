@@ -1,6 +1,6 @@
 """Pixel art for Afterlight Post. Run: python gen_art.py <Assets dir>"""
 import sys, os, random, math
-from PIL import Image
+from PIL import Image, ImageDraw
 
 OUT = sys.argv[1]
 S = os.path.join(OUT, 'Sprites')
@@ -37,19 +37,16 @@ def save(im, *path):
     return im
 
 def floor(seed):
-    rng = random.Random(seed)
-    base, line, hi, lo = hexc('39465a'), hexc('2c3648'), hexc('445369'), hexc('333f52')
+    base = hexc('6b5961' if seed == 1 else '67565e')
+    seam, edge = hexc('51434e'), hexc('77656a')
     im = Image.new('RGBA', (16, 16), base)
-    for y in (7, 15):
-        for x in range(16): im.putpixel((x, y), line)
-    for x, ys in ((5, range(0, 7)), (13, range(0, 7)), (1, range(8, 15)), (9, range(8, 15))):
-        for y in ys: im.putpixel((x, y), line)
-    for _ in range(7):
-        x, y = rng.randrange(16), rng.randrange(16)
-        if im.getpixel((x, y)) == base: im.putpixel((x, y), rng.choice((hi, lo)))
-    for x in range(16):
-        if im.getpixel((x, 0)) == base and rng.random() < .5: im.putpixel((x, 0), hi)
-        if im.getpixel((x, 8)) == base and rng.random() < .5: im.putpixel((x, 8), hi)
+    draw = ImageDraw.Draw(im)
+    draw.line((0, 7, 15, 7), seam)
+    draw.line((0, 15, 15, 15), seam)
+    split = 10 if seed == 1 else 3
+    draw.line((split, 0, split, 6), seam)
+    draw.line((15 - split, 8, 15 - split, 14), seam)
+    draw.line((1, 8, 4, 8), edge)
     return im
 
 def water(frame):
@@ -63,25 +60,52 @@ def water(frame):
     return im
 
 def wall(seed):
-    rng = random.Random(seed)
-    top, hi, front, mortar = hexc('27314a'), hexc('3a4766'), hexc('181f31'), hexc('1d2539')
-    im = Image.new('RGBA', (16, 16), top)
-    for x in range(16): im.putpixel((x, 0), hi)
-    for y in range(11, 16):
-        for x in range(16): im.putpixel((x, y), front)
-    for x in range(16): im.putpixel((x, 10), mortar)
-    for x in (3, 11):
-        for y in range(11, 13): im.putpixel((x, y), mortar)
-    for x in (7, 15):
-        for y in range(14, 16): im.putpixel((x, y), mortar)
-    for x in range(16): im.putpixel((x, 13), mortar)
-    for _ in range(4):
-        im.putpixel((rng.randrange(16), rng.randrange(2, 9)), hi if rng.random() < .5 else mortar)
+    im = Image.new('RGBA', (16, 16), hexc('47465a'))
+    draw = ImageDraw.Draw(im)
+    draw.line((0, 0, 15, 0), hexc('626176'))
+    draw.polygon([(0, 8), (4, 8), (4, 9), (12, 9), (12, 8), (15, 8),
+                  (15, 15), (0, 15)], hexc('302e43'))
+    joint = 5 if seed == 3 else 11
+    draw.line((joint, 10, joint, 14), hexc('454457'))
+    draw.line((1, 4, 3, 4) if seed == 3 else (9, 5, 12, 5), hexc('525166'))
     return im
 
 save(floor(1), 'Tiles', 'floor_a.png'); save(floor(2), 'Tiles', 'floor_b.png')
 save(water(0), 'Tiles', 'water_0.png'); save(water(1), 'Tiles', 'water_1.png')
 save(wall(3), 'Tiles', 'wall_a.png'); save(wall(8), 'Tiles', 'wall_b.png')
+
+def mailbox(lit):
+    im = Image.new('RGBA', (16, 16))
+    draw = ImageDraw.Draw(im)
+    draw.polygon([(2, 6), (4, 4), (6, 3), (12, 3), (14, 6), (14, 11), (2, 11)], fill=K)
+    draw.polygon([(3, 6), (5, 4), (12, 4), (13, 6), (13, 10), (3, 10)],
+                 fill=hexc('b88055' if lit else '5e6f73'))
+    draw.line((5, 6, 11, 6), K)
+    draw.line((10, 2, 10, 5), hexc('fa9e66' if lit else '886356'))
+    draw.rectangle((10, 2, 12, 3), fill=hexc('fa9e66' if lit else '886356'))
+    draw.line((7, 12, 7, 14), hexc('403441'), width=2)
+    if lit:
+        draw.polygon([(0, 4), (7, 4), (7, 9), (1, 10), (0, 9)], fill=PAL['L'], outline=K)
+        draw.line([(1, 5), (3, 7), (6, 5)], hexc('a46a41'))
+    return im
+
+save(mailbox(False), 'Tiles', 'mailbox_dark.png')
+save(mailbox(True), 'Tiles', 'mailbox_open.png')
+
+slip = Image.new('RGBA', (16, 16))
+draw = ImageDraw.Draw(slip)
+draw.polygon([(10, 4), (14, 5), (14, 10), (12, 9), (11, 11), (9, 10)],
+             fill=hexc('bfa98b'), outline=K)
+draw.line((11, 6, 13, 6), hexc('665462'))
+draw.point((11, 8), hexc('665462'))
+save(slip, 'Tiles', 'return_slip.png')
+
+scratch = Image.new('RGBA', (16, 16))
+draw = ImageDraw.Draw(scratch)
+draw.line([(3, 8), (7, 4), (10, 7)], hexc('b49d86'))
+draw.line([(7, 5), (7, 8), (6, 11), (6, 13)], hexc('b49d86'))
+draw.point((11, 9), hexc('6e6262'))
+save(scratch, 'Tiles', 'return_arrow.png')
 
 save(grid([
     "................",
@@ -391,90 +415,67 @@ save(grid([
     "KKKKKKK"], {'.': (0, 0, 0, 0), 'K': (255, 255, 255, 255)}), 'UI', 'lock.png')
 save(Image.new('RGBA', (4, 4), (255, 255, 255, 255)), 'UI', 'white.png')
 
-def lerp(a, b, t): return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(4))
-
 def sea_bg():
-    rng = random.Random(11)
     im = Image.new('RGBA', (320, 180), hexc('0b1422'))
-    for _ in range(170):
-        x, y, n = rng.randrange(320), rng.randrange(180), rng.randrange(2, 6)
-        d = math.hypot((x - 160) / 160, (y - 90) / 90)
-        col = lerp(hexc('13243a'), hexc('0b1422'), min(1, d * .8))
-        for i in range(n):
-            if x + i < 320: im.putpixel((x + i, y), col)
+    draw = ImageDraw.Draw(im)
+    for x, y, n in [(9, 45, 9), (29, 111, 12), (11, 131, 6),
+                    (265, 39, 8), (302, 59, 11), (279, 122, 16), (298, 147, 7)]:
+        draw.line((x, y, x + n, y), hexc('1c2a3e'))
+        draw.line((x + 4, y + 2, x + n - 1, y + 2), hexc('142236'))
     return im
 save(sea_bg(), 'Backgrounds', 'sea.png')
 
 def town(lit):
-    rng = random.Random(47)
-    im = Image.new('RGBA', (320, 180), (0, 0, 0, 255))
-    top, mid = (hexc('090d1f'), hexc('1a2a4e')) if not lit else (hexc('0c1230'), hexc('2b3f73'))
-    bands = 14
-    for y in range(118):
-        t = math.floor(y / 118 * bands) / bands
-        for x in range(320): im.putpixel((x, y), lerp(top, mid, t))
-    for _ in range(90):
-        x, y = rng.randrange(320), rng.randrange(100)
-        im.putpixel((x, y), hexc('e9dfc8') if rng.random() < .3 else hexc('7d8cb3'))
-    for y in range(-13, 14):
-        for x in range(-13, 14):
-            if x * x + y * y <= 169 and (x - 5) ** 2 + (y + 3) ** 2 > 130:
-                im.putpixel((296 + x, 24 + y), hexc('f3ecd2'))
-    sea_a, sea_b = hexc('0d1d33'), hexc('132b47')
-    for y in range(118, 180):
-        for x in range(320): im.putpixel((x, y), sea_a)
-    for _ in range(130):
-        x, y, n = rng.randrange(320), rng.randrange(120, 180), rng.randrange(3, 12)
-        for i in range(n):
-            if x + i < 320: im.putpixel((x + i, y), sea_b)
-    hill = hexc('0a1120')
-    def ground(x): return int(118 - 54 * max(0, (x - 130) / 190) ** 1.5 - (6 if x > 250 else 0))
-    for x in range(100, 320):
-        for y in range(ground(x), 124): im.putpixel((x, y), hill)
-    win_off, win_on = hexc('18233a'), hexc('ffcf5c')
-    wall_c, roof_c = (hexc('121b2f'), hexc('0d1424')) if not lit else (hexc('1c2946'), hexc('131c33'))
-    windows = []
-    x = 138
-    while x < 312:
-        w, h = rng.randrange(12, 20), rng.randrange(10, 20)
-        gy = ground(x + w // 2)
-        for yy in range(gy - h, gy + 3):
-            for xx in range(x, x + w): im.putpixel((xx, yy), wall_c)
-        for i in range(w // 2 + 2):
-            for xx in range(x - 1 + i, x + w + 1 - i):
-                if 0 <= xx < 320: im.putpixel((xx, gy - h - 1 - i), roof_c)
-        for wy in range(gy - h + 3, gy - 3, 6):
-            for wx in range(x + 3, x + w - 3, 5):
-                windows.append((wx, wy))
-        x += w + rng.randrange(1, 5)
-    for i, (wx, wy) in enumerate(windows):
-        on = lit and rng.random() < .85
-        for dx in range(2):
-            for dy in range(3): im.putpixel((wx + dx, wy + dy), win_on if on else win_off)
-        if on:
-            for yy in range(126, 176, 3 + (i % 3)):
-                if rng.random() < .25: im.putpixel((wx, yy), hexc('7a6a3d'))
-    px, py = 112, 118
-    for yy in range(py - 16, py + 2):
-        for xx in range(px, px + 26): im.putpixel((xx, yy), hexc('1e2b49'))
-    for i in range(8):
-        for xx in range(px - 2 + i * 2, px + 28 - i * 2): im.putpixel((xx, py - 17 - i), hexc('141d35'))
-    for xx in range(px + 4, px + 10):
-        for yy in range(py - 11, py - 5): im.putpixel((xx, yy), win_on)
-    for xx in range(px + 15, px + 21):
-        for yy in range(py - 9, py + 2): im.putpixel((xx, yy), hexc('0d1424'))
-    for yy in range(126, 170, 4): im.putpixel((px + 6 + (yy % 3) - 1, yy), hexc('a88f45'))
-    for xx in range(0, 112):
-        for yy in range(119, 122): im.putpixel((xx, yy), hexc('0a1120'))
-    for xx in range(8, 110, 17):
-        for yy in range(122, 132): im.putpixel((xx, yy), hexc('0a1120'))
-    for i, xx in enumerate(range(20, 110, 30)):
-        for yy in range(106, 119): im.putpixel((xx, yy), hexc('0a1120'))
-        col = win_on if lit else hexc('27324d')
-        for dx in (-1, 0, 1):
-            for dy in (0, 1): im.putpixel((xx + dx, 104 + dy), col)
-        if lit:
-            for yy in range(124, 160, 5): im.putpixel((xx, yy), hexc('a88f45'))
+    sky = hexc('292c43' if lit else '171c31')
+    ground = hexc('151827')
+    sea = hexc('263b4e' if lit else '1c2a3e')
+    warm = hexc('ffcf73')
+    im = Image.new('RGBA', (320, 180), sky)
+    draw = ImageDraw.Draw(im)
+    draw.ellipse((283, 12, 301, 30), fill=hexc('e0c89a'))
+    draw.ellipse((288, 9, 305, 25), fill=sky)
+    for x, y in [(268, 18), (305, 45), (247, 41), (116, 78), (156, 68)]:
+        draw.point((x, y), fill=hexc('c3bac0'))
+    draw.rectangle((0, 129, 319, 179), fill=sea)
+    draw.polygon([(145, 132), (178, 119), (223, 118), (265, 101), (319, 102),
+                  (319, 142), (146, 142)], fill=ground)
+    draw.rectangle((0, 141, 226, 145), fill=ground)
+    for x in range(5, 180, 27):
+        draw.line((x, 144, x, 153 - (x % 3)), ground, width=2)
+    for x, y, length in [(7, 159, 25), (48, 151, 12), (87, 162, 30), (118, 152, 14),
+                         (159, 161, 18), (207, 154, 22), (269, 163, 38)]:
+        draw.line((x, y, x + length, y), hexc('374c5b'))
+    for x, y in [(285, 91), (304, 85)]:
+        draw.rectangle((x, y, x + 13, y + 21), fill=hexc('32364b'))
+        draw.polygon([(x - 2, y), (x + 6, y - 7), (x + 15, y)], fill=ground)
+        draw.rectangle((x + 4, y + 4, x + 6, y + 8), fill=warm if lit else hexc('242536'))
+
+    draw.polygon([(190, 81), (274, 80), (275, 137), (189, 139)], fill=hexc('5f4a54'), outline=ground)
+    draw.polygon([(181, 88), (198, 68), (258, 67), (282, 85), (283, 89), (181, 92)],
+                 fill=hexc('39435a'), outline=ground)
+    draw.line([(183, 90), (233, 89), (280, 86)], hexc('8b6260'), width=2)
+    draw.line((198, 74, 231, 73), hexc('4d5c73'), width=2)
+    draw.line((255, 59, 255, 69), ground, width=2)
+    draw.polygon([(255, 59), (267, 60), (263, 65), (255, 64)], fill=hexc('a65957'))
+    draw.rectangle((214, 93, 247, 105), fill=hexc('cfb58d'), outline=ground)
+    text(im, 'POST', 219, 96, hexc('3e2930'))
+    for x, y in [(198, 110), (251, 109)]:
+        draw.rectangle((x - 1, y - 1, x + 13, y + 13), fill=ground)
+        draw.rectangle((x, y, x + 12, y + 11), fill=warm if lit else hexc('303449'))
+        draw.line((x + 6, y, x + 6, y + 11), ground)
+        draw.line((x, y + 6, x + 12, y + 6), ground)
+    draw.rectangle((219, 111, 241, 137), fill=ground)
+    if lit:
+        draw.rectangle((222, 113, 237, 137), fill=hexc('e9aa66'))
+        draw.polygon([(223, 138), (236, 137), (246, 146), (214, 148)], fill=hexc('bb805e'))
+        draw.line((197, 148, 207, 148), warm)
+        draw.line((251, 152, 263, 152), warm)
+    else:
+        draw.polygon([(223, 113), (238, 114), (238, 136), (223, 136)], fill=hexc('353b52'))
+        draw.point((235, 125), fill=hexc('b39677'))
+    for x, y in [(178, 131), (182, 135), (273, 133)]:
+        draw.rectangle((x, y, x + 7, y + 5), fill=hexc('91705b'), outline=ground)
+        draw.point((x + 3, y + 1), fill=hexc('e5c3a0'))
     return im
 save(town(False), 'Backgrounds', 'town_dark.png')
 save(town(True), 'Backgrounds', 'town_lit.png')
